@@ -1,0 +1,1 @@
+"C:\Users\nauma\Anaconda3\envs\rl\python.exe" -c "from rlbot_gui.gui import start; start()"
