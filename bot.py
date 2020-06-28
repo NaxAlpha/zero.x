@@ -75,6 +75,7 @@ class MyBot(BaseAgent):
         self.wait = False
         self.timer = Timer()
         self.reward = 0
+        self.last_reward = 0
         self.speed = 2
 
     def reset(self):
@@ -150,9 +151,11 @@ class MyBot(BaseAgent):
                 self.send_quick_chat(False, QuickChatSelection.Compliments_WhatAPlay)
                 self.reset()
             
-            print('Total Reward:', self.reward, 'Replay Size:', len(self.ai.replay))
+            self.last_reward = self.reward * 0.01 + self.last_reward * 0.99
+            print('Avg Reward:', self.last_reward, 'Replay Size:', len(self.ai.replay))
             self.ai.save('model.pt')
             self.reward = 0
+            
         
         return torch_action_to_game_action(self.action)
 
