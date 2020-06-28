@@ -69,6 +69,7 @@ class MyBot(BaseAgent):
         self.wait = False
         self.timer = Timer()
         self.reward = 0
+        self.speed = 5
 
     def reset(self):
         ball_start = Vec3(
@@ -106,7 +107,7 @@ class MyBot(BaseAgent):
                 boost_amount=random.randint(60, 90),
             )},
             game_info=GameInfoState(
-                game_speed=10
+                game_speed=self.speed
             )
         ))
 
@@ -116,7 +117,7 @@ class MyBot(BaseAgent):
     def get_output(self, packet: GameTickPacket) -> SimpleControllerState:
         if self.wait:
             if self.timer(packet.game_info.seconds_elapsed) < 3.1:
-                self.set_game_state(GameState(game_info=GameInfoState(game_speed=10)))
+                self.set_game_state(GameState(game_info=GameInfoState(game_speed=2*self.speed)))
                 return SimpleControllerState()
             self.reset()
             self.wait = False
@@ -143,7 +144,7 @@ class MyBot(BaseAgent):
                 self.send_quick_chat(False, QuickChatSelection.Compliments_WhatAPlay)
                 self.reset()
             
-            print('Total Reward:', self.reward)
+            print('Total Reward:', self.reward, 'Replay Size:', len(self.ai.replay))
             self.ai.save('model.pt')
             self.reward = 0
         
