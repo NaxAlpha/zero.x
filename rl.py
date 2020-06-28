@@ -42,15 +42,16 @@ class GenericFCN(nn.Module):
 
     def __init__(self, n_in, n_out, layers=None):
         super().__init__()
-        layers = layers or [64, 64, 64, 64]
+        layers = layers or [64, 64, 64, 32]
         self.model = nn.Sequential(
+            nn.Linear(n_in, n_in),   # Let network normalize as it likes
             Trigno(),
-            Outer(),
-            nn.Linear(9*n_in*n_in+3*n_in, layers[0]),
+            nn.Linear(3*n_in, layers[0]),
             nn.BatchNorm1d(layers[0]),
             nn.GELU(),
             *(nn.Sequential(
-                nn.Linear(l1, l2),
+                Outer(),
+                nn.Linear(l1*l1+l1, l2),
                 nn.BatchNorm1d(l2),
                 nn.GELU(),
             ) for l1, l2 in zip(layers, layers[1:])),
