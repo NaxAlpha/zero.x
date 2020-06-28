@@ -48,8 +48,12 @@ class TrainController:
 
     def update(self, state: GameTickPacket):
         self.done = False
-        self.reward = state.game_ball.physics.velocity.y/2000-self.dist_from_car(state)/42e2
-        
+
+        dist = self.dist_from_car(state)
+        self.reward = -dist/42e2
+        if dist < 200:
+            self.reward = 10.
+
         for t in range(2):
             if self.goals[t] != state.teams[t].score:
                 self.reward = 1
@@ -75,21 +79,21 @@ class MyBot(BaseAgent):
         self.wait = False
         self.timer = Timer()
         self.reward = 0
-        self.last_reward = 0
+        self.last_reward = -100
         self.speed = 2
 
     def reset(self):
         ball_start = Vec3(
             x=random.randint(-1365, 1365),
             y=random.randint(-1280, -1200),
-            z=random.randint(50, 500),
+            z=random.randint(50, 100),
         )
         ball_end = Vec3(
             x=random.randint(-800, 800),
             y=random.randint(-5125, -5120),
-            z=random.randint(50, 500),
+            z=random.randint(50, 100),
         )
-        ball_speed = (ball_end-ball_start).normalized() * random.randint(1500, 2000)
+        ball_speed = (ball_end-ball_start).normalized() * random.randint(1600, 1800)
         car_start = Vec3(
             x=random.randint(-440, 440),
             y=random.randint(-5560, -5120),
@@ -151,7 +155,7 @@ class MyBot(BaseAgent):
                 self.send_quick_chat(False, QuickChatSelection.Compliments_WhatAPlay)
                 self.reset()
             
-            self.last_reward = self.reward * 0.01 + self.last_reward * 0.99
+            self.last_reward = self.reward * 0.05 + self.last_reward * 0.95
             print('Avg Reward:', self.last_reward, 'Replay Size:', len(self.ai.replay))
             self.ai.save('model.pt')
             self.reward = 0
