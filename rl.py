@@ -119,7 +119,7 @@ class RLAI:
         self.num_state = 24
         self.num_action = 8
 
-        self.replay = Memory(100000)
+        self.replay = Memory(1000000)
         self.actor = GenericFCN(self.num_state, self.num_action)
         self.critic = GenericFCN(self.num_state + self.num_action, self.num_action)
         
@@ -128,7 +128,7 @@ class RLAI:
         
         self.loss_fn = nn.MSELoss()
         self.eps = Epsilon(0.9, 0.05, 10000)
-        self.batch_size = 1024
+        self.batch_size = 4096
         self.gamma = 0.99
         self.steps = 0
         self.loss = 0
