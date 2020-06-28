@@ -9,7 +9,26 @@ from rlbot.utils.game_state_util import GameState, BallState, CarState, Physics,
 from rl import RLAI
 from maths import Vec3
 from introp import game_state_to_torch_state, torch_action_to_game_action
+from rlbot.setup_manager import SetupManager
 
+
+class Timer:
+
+    def __init__(self):
+        self.old = -1
+        self.time = 0.0
+
+    def __call__(self, current_time):
+        if self.old == -1:
+            self.old = current_time
+        dt = current_time - self.old 
+        self.old = current_time
+        self.time += dt
+        return self.time
+
+    def reset(self):
+        self.old = -1
+        self.time = 0.0
 
 
 class TrainController:
@@ -18,25 +37,27 @@ class TrainController:
         self.my_team = my_team
         self.reward = 0
         self.goals = {0: 0, 1: 0}
-        self.done = False
-        self.timer = 0
-        self.old_time = 0
+        self.done = True
+        self.timer = Timer()
 
     def update(self, state: GameTickPacket):
         self.done = False
-        self.reward = -0.01
-        self.timer += state.game_info.seconds_elapsed - self.old_time
+        self.reward = 0
+        
         for t in range(2):
             if self.goals[t] != state.teams[t].score:
                 self.reward = 1
                 if t != self.my_team:
-                    self.reward *= -1
+                    self.reward *= -10
                 self.done = True
+                self.timer.reset()
             self.goals[t] = state.teams[t].score
-        if self.timer > 5:
+            
+        if self.timer(state.game_info.seconds_elapsed) > 5:
             self.done = True
-            self.reward = 1
-        self.old_time = state.game_info.seconds_elapsed
+            self.reward = 10
+            self.timer.reset()
+            
 
 class MyBot(BaseAgent):
 
@@ -45,8 +66,9 @@ class MyBot(BaseAgent):
         self.ai = RLAI()
         self.action = None
         self.controller = TrainController(team)
-        self.time = 0
-        self.timer = 0
+        self.wait = False
+        self.timer = Timer()
+        self.reward = 0
 
     def reset(self):
         ball_start = Vec3(
@@ -59,7 +81,7 @@ class MyBot(BaseAgent):
             y=random.randint(-5125, -5120),
             z=random.randint(50, 200),
         )
-        ball_speed = (ball_end-ball_start).normalized() * random.randint(2000, 3000)
+        ball_speed = (ball_end-ball_start).normalized() * random.randint(2000, 2500)
         car_start = Vec3(
             x=random.randint(-440, 440),
             y=random.randint(-5560, -5120),
@@ -67,7 +89,7 @@ class MyBot(BaseAgent):
         )
         car_rot = Rotator(
             pitch=0,
-            yaw=math.pi/2 + (random.random()-0.5)*math.pi/3,
+            yaw=math.pi/2 + (random.random()-0.5)*math.pi/6,
             roll=0,
         )
         self.set_game_state(GameState(
@@ -84,7 +106,7 @@ class MyBot(BaseAgent):
                 boost_amount=random.randint(60, 90),
             )},
             game_info=GameInfoState(
-                game_speed=1
+                game_speed=10
             )
         ))
 
@@ -92,6 +114,18 @@ class MyBot(BaseAgent):
         return self.controller.done, self.controller.reward
 
     def get_output(self, packet: GameTickPacket) -> SimpleControllerState:
+        if self.wait:
+            if self.timer(packet.game_info.seconds_elapsed) < 3.1:
+                self.set_game_state(GameState(game_info=GameInfoState(game_speed=10)))
+                return SimpleControllerState()
+            self.reset()
+            self.wait = False
+            self.timer.reset()
+            self.controller.timer.reset()
+            return SimpleControllerState()
+
+        self.controller.update(packet)
+
         self.state = game_state_to_torch_state(packet, self.index)
 
         done, reward = self.get_reward()
@@ -100,11 +134,18 @@ class MyBot(BaseAgent):
         else:
             self.action = self.ai.init_run(self.state)
 
+        self.reward += reward
         if done:
             if reward < 0:
                 self.send_quick_chat(False, QuickChatSelection.Apologies_Whoops)
+                self.wait = True
             else:
                 self.send_quick_chat(False, QuickChatSelection.Compliments_WhatAPlay)
-            self.reset()
+                self.reset()
+            
+            print('Total Reward:', self.reward)
+            self.ai.save('model.pt')
+            self.reward = 0
+        
         return torch_action_to_game_action(self.action)
 
