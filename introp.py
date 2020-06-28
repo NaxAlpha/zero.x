@@ -8,35 +8,28 @@ def game_state_to_torch_state(game_state: GameTickPacket, self_car_idx):
     car = game_state.game_cars[self_car_idx].physics
     ball = game_state.game_ball.physics
     state = torch.tensor([
-        ball.location.x,
-        ball.location.y,
-        ball.location.z,
-        ball.velocity.x,
-        ball.velocity.y,
-        ball.velocity.z,
-        car.location.x,
-        car.location.y,
-        car.location.z,
-        car.velocity.x,
-        car.velocity.y,
-        car.velocity.z,
-        ball.rotation.pitch,
-        ball.rotation.yaw,
-        ball.rotation.roll,
-        ball.angular_velocity.x,
-        ball.angular_velocity.y,
-        ball.angular_velocity.z,
-        car.rotation.pitch,
-        car.rotation.yaw,
-        car.rotation.roll,
-        car.angular_velocity.x,
-        car.angular_velocity.y,
-        car.angular_velocity.z,
+        ball.location.x/4096,
+        ball.location.y/5120,
+        ball.location.z/2044,
+        ball.velocity.x/6000,
+        ball.velocity.y/6000,
+        ball.velocity.z/6000,
+        car.location.x/4096,
+        car.location.y/5120,
+        car.location.z/2044,
+        car.velocity.x/2300,
+        car.velocity.y/2300,
+        car.velocity.z/2300,
+        ball.angular_velocity.x/6,
+        ball.angular_velocity.y/6,
+        ball.angular_velocity.z/6,
+        car.rotation.pitch/math.pi/2,
+        car.rotation.yaw/math.pi/2,
+        car.rotation.roll/math.pi/2,
+        car.angular_velocity.x/5.5,
+        car.angular_velocity.y/5.5,
+        car.angular_velocity.z/5.5,
     ])
-    state[0:12:3] /= 4096
-    state[1:12:3] /= 5120
-    state[2:12:3] /= 2044
-    state[20:] /= math.pi/2
     return state.unsqueeze(0)
 
 
