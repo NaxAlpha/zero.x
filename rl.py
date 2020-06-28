@@ -186,11 +186,26 @@ class RLAI:
 
         if not done:
             self.replay.push(self.last_state, self.action, reward, state, done)
-            if random.random() < 0.2:
+            if random.random() < 0.3:
                 self.optimize_step()
             self.last_state = state
 
         return self.next_action(state)
         
     def save(self, fn):
-        torch.save(self.actor.network.state_dict(), fn)
+        state = dict(
+            actor=self.actor.network.state_dict(),
+            actor_ema=self.actor.target.state_dict(),
+            critic=self.critic.network.state_dict(),
+            critic_ema=self.critic.target.state_dict(),
+            eps=tuple(self.eps),
+        )
+        torch.save(state, fn)
+
+    def load(self, fn):
+        state = torch.load(fn)
+        self.eps = Epsilon(*state['eps'])
+        self.actor.network.load_state_dict(state['actor'])
+        self.actor.target.load_state_dict(state['actor_ema'])
+        self.critic.network.load_state_dict(state['critic'])
+        self.critic.target.load_state_dict(state['critic_ema'])

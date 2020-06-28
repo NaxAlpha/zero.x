@@ -81,6 +81,7 @@ class MyBot(BaseAgent):
         self.reward = 0
         self.last_reward = -100
         self.speed = 2
+        self.ai.load('model.pt')
 
     def reset(self):
         ball_start = Vec3(
