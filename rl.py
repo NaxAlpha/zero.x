@@ -42,7 +42,7 @@ class GenericFCN(nn.Module):
 
     def __init__(self, n_in, n_out, layers=None):
         super().__init__()
-        layers = layers or [256, 128, 64, 32]
+        layers = layers or [64, 64, 64, 64]
         self.model = nn.Sequential(
             Trigno(),
             Outer(),
@@ -128,7 +128,7 @@ class RLAI:
         
         self.loss_fn = nn.MSELoss()
         self.eps = Epsilon(0.9, 0.05, 10000)
-        self.batch_size = 4096
+        self.batch_size = 1024
         self.gamma = 0.99
         self.steps = 0
         self.loss = 0
@@ -185,7 +185,8 @@ class RLAI:
 
         if not done:
             self.replay.push(self.last_state, self.action, reward, state, done)
-            self.optimize_step()
+            if random.random() < 0.2:
+                self.optimize_step()
             self.last_state = state
 
         return self.next_action(state)
